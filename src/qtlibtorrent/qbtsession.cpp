@@ -2770,6 +2770,16 @@ void QBtSession::recheckTorrent(const QString &hash) {
   }
 }
 
+void QBtSession::setLabel(const QTorrentHandle &h, QString label) {
+  if(!h.is_valid()) return;
+
+  QString old_label = TorrentPersistentData::getLabel(h.hash());
+  emit updateTorrentLabel(h, label);
+
+  changeLabelInTorrentSavePath(h, old_label, label);
+}
+
+
 QHash<QString, TrackerInfos> QBtSession::getTrackersInfo(const QString &hash) const {
   return trackersInfos.value(hash, QHash<QString, TrackerInfos>());
 }
