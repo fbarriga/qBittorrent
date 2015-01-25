@@ -49,6 +49,7 @@
 #include "qbtsession.h"
 #include "requesthandler.h"
 #include "webapplication.h"
+#include "jsonutils.h"
 
 using namespace libtorrent;
 
@@ -79,6 +80,7 @@ QMap<QString, QMap<QString, RequestHandler::Action> > RequestHandler::initialize
     ADD_ACTION(public, images);
     ADD_ACTION(query, torrents);
     ADD_ACTION(query, preferences);
+    ADD_ACTION(query, labels);
     ADD_ACTION(query, transferInfo);
     ADD_ACTION(query, propertiesGeneral);
     ADD_ACTION(query, propertiesTrackers);
@@ -113,6 +115,9 @@ QMap<QString, QMap<QString, RequestHandler::Action> > RequestHandler::initialize
     ADD_ACTION(command, topPrio);
     ADD_ACTION(command, bottomPrio);
     ADD_ACTION(command, recheck);
+    ADD_ACTION(command, setLabel);
+    ADD_ACTION(command, addLabel);
+    ADD_ACTION(command, deleteLabel);
     ADD_ACTION(version, api);
     ADD_ACTION(version, api_min);
     ADD_ACTION(version, qbittorrent);
@@ -237,6 +242,12 @@ void RequestHandler::action_query_preferences()
 {
     CHECK_URI(0);
     print(prefjson::getPreferences(), CONTENT_TYPE_JS);
+}
+
+void RequestHandler::action_query_labels()
+{
+    CHECK_URI(0);
+    print(prefjson::getLabels(), CONTENT_TYPE_JS);
 }
 
 void RequestHandler::action_query_transferInfo()
@@ -655,6 +666,34 @@ void RequestHandler::action_command_recheck()
     CHECK_URI(0);
     CHECK_PARAMETERS("hash");
     QBtSession::instance()->recheckTorrent(request().posts["hash"]);
+}
+
+void RequestHandler::action_command_setLabel()
+{
+    CHECK_URI(0);
+    CHECK_PARAMETERS("hash" << "label_obj");
+
+    QString hash = request().posts["hash"];
+    QString label_obj = request().posts["label_obj"];
+
+    const QVariantMap m = json::fromJson(label_obj).toMap();
+    if( m.contains("value") ) {
+        QString label = m["value"].toString();
+        if (!hash.isEmpty()) {
+            QTorrentHandle h = QBtSession::instance()->getTorrentHandle(hash);
+            QBtSession::instance()->setLabel(h, label);
+        }
+    }
+}
+
+//todo
+void RequestHandler::action_command_addLabel()
+{
+}
+
+//todo
+void RequestHandler::action_command_deleteLabel()
+{
 }
 
 bool RequestHandler::isPublicScope()
