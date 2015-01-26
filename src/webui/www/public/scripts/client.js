@@ -28,6 +28,7 @@ var updatePropertiesPanel = function(){};
 var updateMainData = function(){};
 var alternativeSpeedLimits = false;
 
+//<<<<<<< HEAD
 selected_filter = getLocalStorageItem('selected_filter', 'all');
 selected_label = null;
 
@@ -47,7 +48,51 @@ var saveSelectedLabel = function () {
         localStorage.setItem('selected_label', selected_label);
     }
 }
+//=======
+//labels = [];
+//labelsCounter = {};
+//allHashes = [];
+//
+//var stateToImg = function (state) {
+//    if (state == "pausedUP" || state == "pausedDL") {
+//        state = "paused";
+//    } else {
+//        if (state == "queuedUP" || state == "queuedDL") {
+//            state = "queued";
+//        } else {
+//            if (state == "checkingUP" || state == "checkingDL") {
+//                state = "checking";
+//            }
+//        }
+//    }
+//    return 'images/skin/' + state + '.png';
+//};
+//
+//var loadStoredLabelFilter = function() {
+//    var data = localStorage.getItem('selected_label_filter');
+//    var rtval = ALL_LABEL_FILTER;
+//
+//    if( data != null )
+//    {
+//        try {
+//            rtval = JSON.parse(data).value;
+//        }
+//        catch (e) {
+//            console.log("loadStoredLabelFilter: e=" + e);
+//        }
+//    }
+//
+//    return rtval;
+//};
+//
+//var ALL_LABEL_FILTER = 1;
+//var UNLABELED_LABEL_FILTER = 2;
+//
+//filter = getLocalStorageItem('selected_filter', 'all');
+//labelFilter = loadStoredLabelFilter();
+//>>>>>>> b10f3ec... webui: feature: added labels support. #648
 
+var g_labels = {dirty: true, labels: [], special_filters: {ALL_LABEL_FILTER: 1, UNLABELED_LABEL_FILTER: 2}};
 window.addEvent('load', function () {
 
     var saveColumnSizes = function () {
@@ -55,7 +100,7 @@ window.addEvent('load', function () {
         var properties_height_rel = $('propertiesPanel').getSize().y / Window.getSize().y;
         localStorage.setItem('filters_width', filters_width);
         localStorage.setItem('properties_height_rel', properties_height_rel);
-    }
+    };
 
     window.addEvent('resize', function() {
         // Resizing might takes some time.
@@ -102,8 +147,54 @@ window.addEvent('load', function () {
         localStorage.setItem('selected_filter', f);
         // Reload torrents
         if (typeof myTable.table != 'undefined')
+//<<<<<<< HEAD
             updateMainData();
     }
+//=======
+//            updateTransferList();
+//    };
+//
+//    var updateLabelList = true;
+//
+//    updateLabelFilterList = function()
+//    {
+//        $("labelFilter_" + ALL_LABEL_FILTER).removeClass( "selectedFilter" );
+//        $("labelFilter_" + UNLABELED_LABEL_FILTER).removeClass( "selectedFilter" );
+//
+//        labels.each( function(label) {
+//            var el = $("labelFilter_s_" + label.name );
+//
+//            if( el && el.removeClass ) {
+//                el.removeClass( "selectedFilter" );
+//            }
+//        });
+//
+//        var obj;
+//        if( typeof labelFilter === 'number' ) {
+//            obj = $("labelFilter_" + labelFilter);
+//        }
+//        else {
+//            obj = $("labelFilter_s_" + labelFilter);
+//        }
+//
+//        if( obj ) {
+//            obj.addClass("selectedFilter");
+//        }
+//    };
+//
+//    setLabelFilter = function (f) {
+//        labelFilter = f;
+//
+//        // saving as json to preserve type (avoid number to be stored as string)
+//        localStorage.setItem('selected_label_filter', JSON.stringify({ value:f }));
+//
+//        // Reload torrents
+//        if (typeof myTable.table != 'undefined')
+//            updateTransferList();
+//
+//        updateLabelFilterList();
+//    };
+//>>>>>>> b10f3ec... webui: feature: added labels support. #648
 
     new MochaUI.Panel({
         id : 'Filters',
@@ -129,6 +220,187 @@ window.addEvent('load', function () {
     if (!speedInTitle)
         $('speedInBrowserTitleBarLink').firstChild.style.opacity = '0';
 
+    var updateLabels = function( labels )
+    {
+        if( labels ) {
+            g_labels.labels = [];
+            labels = labels.sort();
+            _.forEach( labels, function( label ) {
+                var hash = XXH(label, 0xABCD).toString(16);
+                g_labels.labels.push( { hash: hash, label: label } );
+            });
+            g_labels.dirty = true;
+        }
+
+        var labelList = $( 'filterLabelList' );
+        if( !labelList || !g_labels.dirty ) {
+            return;
+        }
+        labelList.empty();
+
+        var create_link = function( filter, text, count )
+        {
+            //var filter_str = filter;
+            var filter_id = "labelFilter_" + filter;
+            //if( typeof filter !== 'number' ) {
+            //    filter_str = '\'' + filter + '\'';
+            //    filter_id = "labelFilter_s_" + filter;
+            //}
+
+            var el = new Element(
+                'li',
+                {
+                    id: filter_id,
+                    html:
+                    '<a href="#" onclick="setLabelFilter(' + filter_id + ');return false;">' +
+                    '<img src="images/oxygen/folder-documents.png"/>' +
+                    text + '(' + count + ')' + '</a>'
+                }
+            );
+            return el;
+        };
+
+        labelList.appendChild( create_link(g_labels.special_filters.ALL_LABEL_FILTER, 'QBT_TR(All Labels)QBT_TR', 0) );
+        labelList.appendChild( create_link(g_labels.special_filters.UNLABELED_LABEL_FILTER, 'QBT_TR(Unlabeled)QBT_TR', 0) );
+
+        g_labels.labels.each(function (label) {
+            var count = 0;
+            //if( labelsCounter[label.name] && labelsCounter[label.name].length )
+            //{
+            //    count = labelsCounter[label.name].length;
+            //}
+            labelList.appendChild( create_link(label.hash, label.label, count) );
+        });
+
+//
+//                    labels = info;
+//                    labels.sort( function(a,b){ return a.name > b.name; } );
+//
+//                    labelList.empty();
+//                    updateLabelList = false;
+//
+//                    var create_link = function( filter, text, count )
+//                    {
+//                        var filter_str = filter;
+//                        var filter_id = "labelFilter_" + filter;
+//                        if( typeof filter !== 'number' ) {
+//                            filter_str = '\'' + filter + '\'';
+//                            filter_id = "labelFilter_s_" + filter;
+//                        }
+//
+//                        var el = new Element(
+//                            'li',
+//                            {
+//                                id: filter_id,
+//                                html:
+//                                '<a href="#" onclick="setLabelFilter(' + filter_str + ');return false;">' +
+//                                '<img src="images/oxygen/folder-documents.png"/>' +
+//                                'QBT_TR(' + text + ')QBT_TR (' + count + ')' + '</a>'
+//                            }
+//                        );
+//                        return el;
+//                    };
+//
+//                    var all_labels = 0;
+//                    try {
+//                        all_labels = allHashes.length;
+//                    } catch(e) {
+//                        all_labels = 0;
+//                    }
+//                    labelList.appendChild( create_link(ALL_LABEL_FILTER, 'QBT_TR(All Labels)QBT_TR', all_labels) );
+//
+//                    var unlabeled = all_labels;
+//                    for( var label in labelsCounter ) {
+//                        unlabeled -= labelsCounter[label].length;
+//                    }
+//                    labelList.appendChild( create_link(UNLABELED_LABEL_FILTER, 'QBT_TR(Unlabeled)QBT_TR', unlabeled) );
+//
+//                    labels.each(function (label) {
+//                        var count = 0;
+//                        if( labelsCounter[label.name] && labelsCounter[label.name].length )
+//                        {
+//                            count = labelsCounter[label.name].length;
+//                        }
+//                        labelList.appendChild( create_link(label.name, label.name, count) );
+//                    });
+    };
+                //    if (info) {
+                //    if( !labels ) {
+                //        updateLabelList = true;
+                //    }
+                //
+                //    if( labels && !updateLabelList ) {
+                //        var new_labels = _.pluck(info, 'name');
+                //        var old_labels = _.pluck(labels, 'name');
+                //        if( !_.isEqual(new_labels, old_labels) )
+                //        {
+                //            updateLabelList = true;
+                //        }
+                //    }
+                //
+                //    var labelList = $( 'filterLabelList' );
+                //    if( !labelList || !updateLabelList ) {
+                //        clearTimeout(loadLabelsInfoTimer);
+                //        loadLabelsInfoTimer = loadLabelsInfo.delay(3000);
+                //        return;
+                //    }
+                //
+                //    labels = info;
+                //    labels.sort( function(a,b){ return a.name > b.name; } );
+                //
+                //    labelList.empty();
+                //    updateLabelList = false;
+                //
+                //    var create_link = function( filter, text, count )
+                //    {
+                //        var filter_str = filter;
+                //        var filter_id = "labelFilter_" + filter;
+                //        if( typeof filter !== 'number' ) {
+                //            filter_str = '\'' + filter + '\'';
+                //            filter_id = "labelFilter_s_" + filter;
+                //        }
+                //
+                //        var el = new Element(
+                //            'li',
+                //            {
+                //                id: filter_id,
+                //                html:
+                //                '<a href="#" onclick="setLabelFilter(' + filter_str + ');return false;">' +
+                //                '<img src="images/oxygen/folder-documents.png"/>' +
+                //                'QBT_TR(' + text + ')QBT_TR (' + count + ')' + '</a>'
+                //            }
+                //        );
+                //        return el;
+                //    };
+                //
+                //    var all_labels = 0;
+                //    try {
+                //        all_labels = allHashes.length;
+                //    } catch(e) {
+                //        all_labels = 0;
+                //    }
+                //    labelList.appendChild( create_link(ALL_LABEL_FILTER, 'QBT_TR(All Labels)QBT_TR', all_labels) );
+                //
+                //    var unlabeled = all_labels;
+                //    for( var label in labelsCounter ) {
+                //        unlabeled -= labelsCounter[label].length;
+                //    }
+                //    labelList.appendChild( create_link(UNLABELED_LABEL_FILTER, 'QBT_TR(Unlabeled)QBT_TR', unlabeled) );
+                //
+                //    labels.each(function (label) {
+                //        var count = 0;
+                //        if( labelsCounter[label.name] && labelsCounter[label.name].length )
+                //        {
+                //            count = labelsCounter[label.name].length;
+                //        }
+                //        labelList.appendChild( create_link(label.name, label.name, count) );
+                //    });
+                //
+                //    updateLabelFilterList();
+                //    clearTimeout(loadLabelsInfoTimer);
+                //    loadLabelsInfoTimer = loadLabelsInfo.delay(3000);
+                //}
+//<<<<<<< HEAD
     var syncMainDataLastResponseId = 0;
     var serverState = {};
 
@@ -136,6 +408,61 @@ window.addEvent('load', function () {
     var syncMainData = function () {
         var url = new URI('sync/maindata');
         url.setData('rid', syncMainDataLastResponseId);
+//=======
+//    var updateLabelCounter = function(label, hash) {
+//        if (label && label.length > 0) {
+//            if (!labelsCounter[label]) {
+//                updateLabelList = true;
+//                labelsCounter[label] = [];
+//            }
+//
+//            if (labelsCounter[label].indexOf(hash) === -1) {
+//                updateLabelList = true;
+//                labelsCounter[label].push(hash);
+//            }
+//        }
+//
+//        for (var l in labelsCounter) {
+//            if (l == label) {
+//                continue;
+//            }
+//
+//            var idx = labelsCounter[l].indexOf(hash);
+//            if (idx >= 0) {
+//                updateLabelList = true;
+//                labelsCounter[l].splice(idx, 1);
+//            }
+//        }
+//    };
+//
+//    // based on qtorrentfilter.cpp
+//    var isTorrentDownloading = function( state ) {
+//        return ["downloading","pausedDL","queuedDL","stalledDL","checkingDL"].indexOf( state ) !== -1;
+//    };
+//
+//    var isTorrentCompleted = function( state ) {
+//        return ["uploading","pausedUP","queuedUP","stalledUP","checkingUP"].indexOf( state ) !== -1;
+//    };
+//
+//    var isTorrentPaused = function( state ) {
+//        return ["pausedUP","pausedDL"].indexOf( state ) !== -1;
+//    };
+//
+//    var isTorrentActive = function( state ) {
+//        return ["downloading","uploading"].indexOf( state ) !== -1;
+//    };
+//
+//    var isTorrentInactive = function( state ) {
+//        return !isTorrentActive(state);
+//    };
+//
+//    var loadTorrentsInfoTimer;
+//    var loadTorrentsInfo = function () {
+//        var queueing_enabled = false;
+//        var url = new URI('json/torrents');
+//        url.setData('sort', myTable.table.sortedColumn);
+//        url.setData('reverse', myTable.table.reverseSort);
+//>>>>>>> b10f3ec... webui: feature: added labels support. #648
         var request = new Request.JSON({
             url : url,
             noCache : true,
@@ -147,12 +474,15 @@ window.addEvent('load', function () {
             },
             onSuccess : function (response) {
                 $('error_div').set('html', '');
+//<<<<<<< HEAD
                 if (response) {
                     var full_update = (response['full_update'] == true);
                     if (full_update)
                         myTable.rows.erase();
                     if (response['rid'])
                         syncMainDataLastResponseId = response['rid'];
+                    if (response['labels'])
+                        updateLabels( response['labels'] );
                     if ('queueing' in response) {
                         var queueing_enabled = response['queueing'];
                         myTable.columns['priority'].force_hide = !queueing_enabled;
@@ -164,18 +494,152 @@ window.addEvent('load', function () {
                         else {
                             $('queueingButtons').addClass('invisible');
                             $('queueingMenuItems').addClass('invisible');
+//=======
+//                if (events) {
+//                    // Add new torrents or update them
+//                    var torrent_hashes = myTable.getRowIds();
+//                    var filtered_hashes = [];
+//                    allHashes = [];
+//
+//                    var pos = 0;
+//                    events.each(function (event) {
+//                        updateLabelCounter(event.label, event.hash);
+//                        allHashes.push( event.hash );
+//
+//                        if(labelFilter === UNLABELED_LABEL_FILTER)
+//                        {
+//                            if(event.label != "") {
+//                                myTable.removeRow(event.hash);
+//                                return;
+//                            }
+//                        }
+//                        else
+//                        {
+//                            if(labelFilter !== ALL_LABEL_FILTER && labelFilter !== event.label) {
+//                                myTable.removeRow(event.hash);
+//                                return;
+//                            }
+//                        }
+//
+//                        if( filter !== "all" ) {
+//                            var remove = false;
+//                            if (filter === "paused" && isTorrentPaused(event.state)) {
+//                                //ok
+//                            }
+//                            else if (filter === "downloading" && isTorrentDownloading(event.state)) {
+//                                //ok
+//                            }
+//                            else if (filter === "completed" && isTorrentCompleted(event.state)) {
+//                                //ok
+//                            }
+//                            else if (filter === "active" && isTorrentActive(event.state)) {
+//                                //ok
+//                            }
+//                            else if (filter === "inactive" && isTorrentInactive(event.state)) {
+//                                //ok
+//                            }
+//                            else {
+//                                myTable.removeRow(event.hash);
+//                                return;
+//                            }
+//                        }
+//
+//                        filtered_hashes.push(event.hash);
+//
+//                        var row = [];
+//                        var data = [];
+//                        row.length = 11;
+//                        row[0] = stateToImg(event.state);
+//                        row[1] = event.name;
+//                        row[2] = event.priority > -1 ? event.priority : null;
+//                        data[2] = event.priority;
+//                        row[3] = friendlyUnit(event.size, false);
+//                        data[3] = event.size;
+//                        row[4] = (event.progress * 100).round(1);
+//                        if (row[4] == 100.0 && event.progress != 1.0)
+//                            row[4] = 99.9;
+//                        data[4] = event.progress;
+//                        row[5] = event.num_seeds;
+//                        if (event.num_complete != -1)
+//                            row[5] += " (" + event.num_complete + ")";
+//                        data[5] = event.num_seeds;
+//                        row[6] = event.num_leechs;
+//                        if (event.num_incomplete != -1)
+//                            row[6] += " (" + event.num_incomplete + ")";
+//                        data[6] = event.num_leechs;
+//                        row[7] = friendlyUnit(event.dlspeed, true);
+//                        data[7] = event.dlspeed;
+//                        row[8] = friendlyUnit(event.upspeed, true);
+//                        data[8] = event.upspeed;
+//                        row[9] = friendlyDuration(event.eta);
+//                        data[9] = event.eta;
+//                        if (event.ratio == -1)
+//                            row[10] = "∞";
+//                        else
+//                            row[10] = (Math.floor(100 * event.ratio) / 100).toFixed(2); //Don't round up
+//                        data[10] = event.ratio;
+//                        if (row[2] != null)
+//                            queueing_enabled = true;
+//                        row[11] = event.label;
+//                        data[11] = event.label;
+//
+//                        attrs = {};
+//                        attrs['downloaded'] = (event.progress == 1.0);
+//                        attrs['state'] = event.state;
+//                        attrs['seq_dl'] = (event.seq_dl == true);
+//                        attrs['f_l_piece_prio'] = (event.f_l_piece_prio == true);
+//                        attrs['label'] = event.label;
+//
+//                        if (!torrent_hashes.contains(event.hash)) {
+//                            // New unfinished torrent
+//                            torrent_hashes[torrent_hashes.length] = event.hash;
+//                            myTable.insertRow(event.hash, row, data, attrs, pos);
+//                        } else {
+//                            // Update torrent data
+//                            myTable.updateRow(event.hash, row, data, attrs, pos);
+//                        }
+//
+//                        pos++;
+//                    });
+//                    // Remove deleted torrents
+//                    torrent_hashes.each(function (hash) {
+//                        if (!filtered_hashes.contains(hash)) {
+//                            myTable.removeRow(hash);
+//>>>>>>> b10f3ec... webui: feature: added labels support. #648
                         }
                     }
+//<<<<<<< HEAD
                     if (response['torrents'])
                         for (var key in response['torrents']) {
                             response['torrents'][key]['hash'] = key;
                             myTable.updateRowData(response['torrents'][key]);
                         }
                     myTable.updateTable(full_update);
-                    if (response['torrents_removed'])
+                    if (response['torrents_removed']) {
                         response['torrents_removed'].each(function (hash) {
                             myTable.removeRow(hash);
                         });
+                    }
+//=======
+//
+//                    var labelList = $( 'labelList' );
+//                    labelList.empty();
+//                    labelList.appendChild( new Element('li', { html: '<a href="javascript:newLabelFN();">QBT_TR(New...)QBT_TR</a>' } ) );
+//                    labelList.appendChild( new Element('li', { html: '<a href="javascript:resetLabelFN();">QBT_TR(Reset)QBT_TR</a>' } ) );
+//
+//                    var first = true;
+//                    labels.each(function (label) {
+//                    	var el = new Element('li',
+//                    			{ html: '<a href="javascript:updateLabelFN(\'' + label.name + '\');">' + label.name + '</a>' } );
+//                    	if( first ) {
+//                    		el.removeClass();
+//                    		el.addClass('separator');
+//                        	first = false;
+//                    	}
+//                    	labelList.appendChild( el );
+//                    });
+//
+//>>>>>>> b10f3ec... webui: feature: added labels support. #648
                     myTable.altRow();
                     if (response['server_state']) {
                         var tmp = response['server_state'];
@@ -190,11 +654,18 @@ window.addEvent('load', function () {
         }).send();
     };
 
+//<<<<<<< HEAD
     updateMainData = function() {
         myTable.updateTable();
         clearTimeout(syncMainDataTimer);
         syncMainDataTimer = syncMainData.delay(100);
     }
+//=======
+//    updateTransferList = function() {
+//        clearTimeout(loadTorrentsInfoTimer);
+//        loadTorrentsInfo();
+//    };
+//>>>>>>> b10f3ec... webui: feature: added labels support. #648
 
     var processServerState = function () {
         var transfer_info = "";
@@ -222,6 +693,118 @@ window.addEvent('load', function () {
             $('connectionStatus').src = 'images/skin/disconnected.png';
     };
 
+//<<<<<<< HEAD
+//=======
+//    updateTransferInfo = function() {
+//        clearTimeout(loadTransferInfoTimer);
+//        loadTransferInfo();
+//    };
+//
+//    // Start fetching data now
+//    loadTransferInfo();
+//
+//    var loadLabelsInfoTimer;
+//    var loadLabelsInfo = function () {
+//        var url = 'json/labels';
+//        var request = new Request.JSON({
+//            url : url,
+//            noCache : true,
+//            method : 'get',
+//            onFailure : function () {
+//                $('error_div').set('html', 'QBT_TR(qBittorrent client is not reachable)QBT_TR');
+//                clearTimeout(loadLabelsInfoTimer);
+//                loadLabelsInfoTimer = loadLabelsInfo.delay(4000);
+//            },
+//            onSuccess : function (info) {
+//                if (info) {
+//                    if( !labels ) {
+//                        updateLabelList = true;
+//                    }
+//
+//                    if( labels && !updateLabelList ) {
+//                        var new_labels = _.pluck(info, 'name');
+//                        var old_labels = _.pluck(labels, 'name');
+//                        if( !_.isEqual(new_labels, old_labels) )
+//                        {
+//                            updateLabelList = true;
+//                        }
+//                    }
+//
+//                    var labelList = $( 'filterLabelList' );
+//                    if( !labelList || !updateLabelList ) {
+//                        clearTimeout(loadLabelsInfoTimer);
+//                        loadLabelsInfoTimer = loadLabelsInfo.delay(3000);
+//                        return;
+//                    }
+//
+//                    labels = info;
+//                    labels.sort( function(a,b){ return a.name > b.name; } );
+//
+//                    labelList.empty();
+//                    updateLabelList = false;
+//
+//                    var create_link = function( filter, text, count )
+//                    {
+//                        var filter_str = filter;
+//                        var filter_id = "labelFilter_" + filter;
+//                        if( typeof filter !== 'number' ) {
+//                            filter_str = '\'' + filter + '\'';
+//                            filter_id = "labelFilter_s_" + filter;
+//                        }
+//
+//                        var el = new Element(
+//                            'li',
+//                            {
+//                                id: filter_id,
+//                                html:
+//                                '<a href="#" onclick="setLabelFilter(' + filter_str + ');return false;">' +
+//                                '<img src="images/oxygen/folder-documents.png"/>' +
+//                                'QBT_TR(' + text + ')QBT_TR (' + count + ')' + '</a>'
+//                            }
+//                        );
+//                        return el;
+//                    };
+//
+//                    var all_labels = 0;
+//                    try {
+//                        all_labels = allHashes.length;
+//                    } catch(e) {
+//                        all_labels = 0;
+//                    }
+//                    labelList.appendChild( create_link(ALL_LABEL_FILTER, 'QBT_TR(All Labels)QBT_TR', all_labels) );
+//
+//                    var unlabeled = all_labels;
+//                    for( var label in labelsCounter ) {
+//                        unlabeled -= labelsCounter[label].length;
+//                    }
+//                    labelList.appendChild( create_link(UNLABELED_LABEL_FILTER, 'QBT_TR(Unlabeled)QBT_TR', unlabeled) );
+//
+//                    labels.each(function (label) {
+//                        var count = 0;
+//                        if( labelsCounter[label.name] && labelsCounter[label.name].length )
+//                        {
+//                            count = labelsCounter[label.name].length;
+//                        }
+//                        labelList.appendChild( create_link(label.name, label.name, count) );
+//                    });
+//
+//                    updateLabelFilterList();
+//                    clearTimeout(loadLabelsInfoTimer);
+//                    loadLabelsInfoTimer = loadLabelsInfo.delay(3000);
+//                }
+//            }
+//        }).send();
+//    };
+//
+//    updateLabelsInfo = function() {
+//        clearTimeout(loadLabelsInfoTimer);
+//        loadLabelsInfo();
+//    }
+//
+//    // Start fetching data now
+//    loadLabelsInfo();
+//
+//>>>>>>> b10f3ec... webui: feature: added labels support. #648
     var updateAltSpeedIcon = function(enabled) {
         if (enabled)
             $('alternativeSpeedLimits').src = "images/slow.png";
